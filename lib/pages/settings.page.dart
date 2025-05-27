@@ -104,17 +104,7 @@ class _SettingsPageState extends State<SettingsPage> {
             }),
             const SizedBox(height: 20),
 
-            _buildSectionTitle("Data", "Manage saved data"),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: _resetHighScores,
-              icon: const Icon(Icons.delete),
-              label: const Text("Reset High Scores"),
-            ),
-            const SizedBox(height: 30),
+
 
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
