@@ -1,7 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class ScorePage extends StatelessWidget {
+class ScorePage extends StatefulWidget {
   const ScorePage({super.key});
+
+  @override
+  State<ScorePage> createState() => _ScorePageState();
+}
+
+class _ScorePageState extends State<ScorePage> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool soundEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      soundEnabled = prefs.getBool('sound') ?? false; // Désactivé par défaut
+    });
+  }
+
+  void _playSound() async {
+    if (soundEnabled) {
+      await _audioPlayer.play(AssetSource('sounds/button-pressed-38129.mp3'));
+    }
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -9,7 +44,6 @@ class ScorePage extends StatelessWidget {
     final int score = args['score'] as int;
     final int total = args['total'] as int;
     final List<Map<String, dynamic>> answers = args['answers'];
-
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -73,6 +107,7 @@ class ScorePage extends StatelessWidget {
                   icon: const Icon(Icons.replay),
                   label: const Text('Play Again'),
                   onPressed: () {
+                    _playSound();
                     Navigator.pushReplacementNamed(
                       context,
                       '/',
@@ -88,6 +123,7 @@ class ScorePage extends StatelessWidget {
                   icon: const Icon(Icons.home),
                   label: const Text('Home'),
                   onPressed: () {
+                    _playSound();
                     Navigator.pushReplacementNamed(context, '/');
                   },
                 ),

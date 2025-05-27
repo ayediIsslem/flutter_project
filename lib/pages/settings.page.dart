@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:vibration/vibration.dart';
 
 class SettingsPage extends StatefulWidget {
   final bool isDarkMode;
@@ -16,9 +18,11 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool soundEnabled = true;
+  bool soundEnabled = false;
   bool vibrationEnabled = true;
   late bool isDarkMode;
+
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -30,7 +34,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      soundEnabled = prefs.getBool('sound') ?? true;
+      soundEnabled = prefs.getBool('sound') ?? false;
       vibrationEnabled = prefs.getBool('vibration') ?? true;
     });
   }
@@ -42,14 +46,32 @@ class _SettingsPageState extends State<SettingsPage> {
     await prefs.setBool('isDarkMode', isDarkMode);
   }
 
+  void _playSoundAndVibrate() async {
+    if (soundEnabled) {
+      await _audioPlayer.play(AssetSource('sounds/button-pressed-38129.mp3'));
+    }
+
+    final hasVibrator = await Vibration.hasVibrator() ?? false;
+    if (vibrationEnabled && hasVibrator) {
+      Vibration.vibrate(duration: 100);
+    }
+  }
+
   void _resetHighScores() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('high_scores');
+    _playSoundAndVibrate();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("High scores reset")),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
   @override
@@ -66,15 +88,18 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionTitle("Sound & Vibration", "Control sound effects and vibration"),
             _buildSwitch("Sound Effects", soundEnabled, (val) {
               setState(() => soundEnabled = val);
+              _playSoundAndVibrate();
             }),
             _buildSwitch("Vibration", vibrationEnabled, (val) {
               setState(() => vibrationEnabled = val);
+              _playSoundAndVibrate();
             }),
             const SizedBox(height: 20),
 
             _buildSectionTitle("Appearance", "Customize the app theme"),
             _buildSwitch("Dark Mode", isDarkMode, (val) {
               setState(() => isDarkMode = val);
+              _playSoundAndVibrate();
               widget.onThemeChanged(val);
             }),
             const SizedBox(height: 20),
@@ -99,6 +124,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               onPressed: () async {
                 await _savePreferences();
+                _playSoundAndVibrate();
                 widget.onThemeChanged(isDarkMode);
                 Navigator.pop(context);
               },

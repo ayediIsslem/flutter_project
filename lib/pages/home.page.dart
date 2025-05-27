@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quiz_projet/models/category.dart';
 import 'package:quiz_projet/services/api.service.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class HomePage extends StatefulWidget {
   final ValueNotifier<ThemeMode> themeNotifier;
@@ -12,6 +13,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
   List<Category> categories = [];
   Category? selectedCategory;
   String selectedDifficulty = 'medium';
@@ -24,16 +26,40 @@ class _HomePageState extends State<HomePage> {
     loadCategories();
   }
 
-  Future<void> loadCategories() async {
-    final fetched = await ApiService.fetchCategories();
-    setState(() {
-      categories = fetched;
-      selectedCategory = categories.first;
-      isLoading = false;
-    });
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
-  void startQuiz() {
+  Future<void> loadCategories() async {
+    try {
+      final fetched = await ApiService.fetchCategories();
+      if (fetched.isNotEmpty) {
+        setState(() {
+          categories = fetched;
+          selectedCategory = fetched.first;
+        });
+      }
+    } catch (e) {
+      print("Erreur lors du chargement des catégories: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> playSound() async {
+    try {
+      await _audioPlayer.play(AssetSource('sounds/button-pressed-38129.mp3'));
+    } catch (e) {
+      print('Erreur lors de la lecture du son: $e');
+    }
+  }
+
+  void startQuiz() async {
+    await playSound();
     if (selectedCategory == null) return;
     Navigator.pushNamed(
       context,
@@ -101,8 +127,7 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.play_circle,
-                              color: Colors.deepPurple),
+                          Icon(Icons.play_circle, color: Colors.deepPurple),
                           SizedBox(width: 8),
                           Text(
                             "Start a Quiz",
@@ -122,6 +147,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 20),
 
+                      // Category Dropdown
                       Text("Category", style: TextStyle(color: textColor)),
                       const SizedBox(height: 4),
                       DropdownButtonFormField<Category>(
@@ -133,9 +159,7 @@ class _HomePageState extends State<HomePage> {
                         items: categories
                             .map((cat) => DropdownMenuItem(
                           value: cat,
-                          child: Text(cat.name,
-                              style: TextStyle(
-                                  color: textColor)),
+                          child: Text(cat.name, style: TextStyle(color: textColor)),
                         ))
                             .toList(),
                         onChanged: (value) {
@@ -146,6 +170,8 @@ class _HomePageState extends State<HomePage> {
                       ),
 
                       const SizedBox(height: 16),
+
+                      // Difficulty Dropdown
                       Text("Difficulty", style: TextStyle(color: textColor)),
                       const SizedBox(height: 4),
                       DropdownButtonFormField<String>(
@@ -157,8 +183,7 @@ class _HomePageState extends State<HomePage> {
                             .map((diff) => DropdownMenuItem(
                           value: diff,
                           child: Text(
-                            diff[0].toUpperCase() +
-                                diff.substring(1),
+                            diff[0].toUpperCase() + diff.substring(1),
                             style: TextStyle(color: textColor),
                           ),
                         ))
@@ -171,8 +196,9 @@ class _HomePageState extends State<HomePage> {
                       ),
 
                       const SizedBox(height: 16),
-                      Text("Number of Questions",
-                          style: TextStyle(color: textColor)),
+
+                      // Number of Questions Dropdown
+                      Text("Number of Questions", style: TextStyle(color: textColor)),
                       const SizedBox(height: 4),
                       DropdownButtonFormField<int>(
                         value: selectedQuestionCount,
@@ -182,8 +208,7 @@ class _HomePageState extends State<HomePage> {
                         items: [5, 10, 15, 20]
                             .map((count) => DropdownMenuItem(
                           value: count,
-                          child: Text('$count',
-                              style: TextStyle(color: textColor)),
+                          child: Text('$count', style: TextStyle(color: textColor)),
                         ))
                             .toList(),
                         onChanged: (value) {
@@ -198,8 +223,7 @@ class _HomePageState extends State<HomePage> {
                         child: ElevatedButton(
                           onPressed: startQuiz,
                           style: ElevatedButton.styleFrom(
-                            padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -218,18 +242,13 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 30),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _navBox(
-                        icon: Icons.settings,
-                        label: "Settings",
-                        route: '/settings'),
-                    _navBox(
-                        icon: Icons.leaderboard,
-                        label: "High Scores",
-                        route: '/highscores'),
+                    _navBox(icon: Icons.settings, label: "Settings", route: '/settings'),
+                    _navBox(icon: Icons.leaderboard, label: "High Scores", route: '/highscores'),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -259,8 +278,7 @@ class _HomePageState extends State<HomePage> {
   InputDecoration _inputDecoration(ThemeData theme, bool isDark) {
     return InputDecoration(
       filled: true,
-      fillColor:
-      isDark ? const Color(0xFF2C2C2E) : theme.inputDecorationTheme.fillColor ?? const Color(0xFFF0F0FA),
+      fillColor: isDark ? const Color(0xFF2C2C2E) : theme.inputDecorationTheme.fillColor ?? const Color(0xFFF0F0FA),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,

@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:quiz_projet/data/local.storage.dart';
 import 'package:quiz_projet/models/question.dart';
 import '../services/api.service.dart';
@@ -32,15 +35,33 @@ class _QuizPageState extends State<QuizPage> {
 
   List<Map<String, dynamic>> userAnswers = [];
 
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool soundEnabled = false;
+
   @override
   void initState() {
     super.initState();
+    _loadPreferences();
     loadQuestions();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      soundEnabled = prefs.getBool('sound') ?? false;
+    });
+  }
+
+  void _playSound() async {
+    if (soundEnabled) {
+      await _audioPlayer.play(AssetSource('sounds/button-pressed-38129.mp3'));
+    }
   }
 
   @override
   void dispose() {
     countdownTimer?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -51,9 +72,7 @@ class _QuizPageState extends State<QuizPage> {
       amount: widget.amount,
     );
 
-    final shuffledAnswers = fetchedQuestions
-        .map((q) => q.getShuffledAnswers())
-        .toList();
+    final shuffledAnswers = fetchedQuestions.map((q) => q.getShuffledAnswers()).toList();
 
     setState(() {
       questions = fetchedQuestions;
@@ -205,6 +224,7 @@ class _QuizPageState extends State<QuizPage> {
                   ),
                 ),
                 onPressed: () {
+                  _playSound();
                   stopTimer();
                   saveAnswerAndNext(answer);
                 },
